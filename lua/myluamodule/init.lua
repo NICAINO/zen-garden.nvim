@@ -78,7 +78,6 @@ local function garden_to_lines(garden, dimensions)
 		local line = "|"
 		for j = 1, dimensions.width do
 			line = line .. tostring(garden[i * j])
-			-- line = line .. " "
 		end
 		line = line .. "|"
 		table.insert(garden_lines, center_text(line))
