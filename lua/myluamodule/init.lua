@@ -1,5 +1,7 @@
 -- By convention, nvim Lua plugins include a setup function that takes a table
 -- so that users of the plugin can configure it using this pattern:
+
+local timer = require("../myluamodule/timer")
 --
 -- require'myluamodule'.setup({p1 = "value1"})
 local function setup(parameters)
@@ -19,30 +21,16 @@ local function setup(parameters)
 		},
 		garden = lines,
 	}
+	Garden_state.timer = nil
+	print("Setup happaned")
 end
 
 Garden_state = {}
 
--- Since this function doesn't have a `local` qualifier, it will end up in the
--- global namespace, and can be invoked from anywHhere using:
---
--- :lua global_lua_function()
---
--- Personally, I feel that kind of global namespace pollution should probably
--- be avoided in order to prevent other modules from accidentally clashing with my function names. While `global_lua_function` seems kind of rare, if I had a function called `connect` in my module, I would be more concerned. So I normally try to follow the pattern demonstrated by `local_lua_function`. The
--- right choice might depend on your circumstances.
 function global_lua_function()
 	print("nvim-example-lua-plugin.myluamodule.init global_lua_function: hello")
 end
 
--- local function unexported_local_function()
--- 	print("nvim-example-lua-plugin.myluamodule.init unexported_local_function: hello")
--- end
-
--- This function is qualified with `local`, so it's visibility is restricted to
--- this file. It is exported below in the return value from this module using a
--- Lua pattern that allows symbols to be selectively exported from a module by
--- adding them to a table that is returned from the file.
 local function local_lua_function()
 	print("nvim-example-lua-plugin.myluamodule.init local_lua_function: hello")
 end
@@ -52,17 +40,6 @@ local function center_text(text)
 	local width = vim.api.nvim_win_get_width(0) - 10
 	local shift = math.floor(width / 2) - math.floor(string.len(text) / 2)
 	return string.rep(" ", shift) .. text
-end
-
-local function timer_to_lines()
-	local timer_lines = {}
-	for i = 0, 3 do
-		table.insert(timer_lines, "")
-	end
-	table.insert(timer_lines, center_text("Timer"))
-	table.insert(timer_lines, center_text(""))
-	table.insert(timer_lines, center_text("40:00"))
-	return timer_lines
 end
 
 -- These obviously should not be hardcoded
@@ -87,10 +64,15 @@ local function garden_to_lines(garden, dimensions)
 end
 
 vim.api.nvim_create_user_command("StartTimer", function()
-	print("Started timer")
+	local start = timer.start_timer()
+	Garden_state.timer = start
+	print("Timer started at: ", start)
 end, {})
 
--- Create a command, ':DoTheThing'
+vim.api.nvim_create_user_command("CheckTimer", function()
+	print("Time remaining: ", timer.time_remaining(Garden_state.timer, 40), " seconds.")
+end, {})
+
 vim.api.nvim_create_user_command("Tend", function(input)
 	--Need to add check whether buffer is alive but should prob do via state
 	if Garden_state.focus then
@@ -105,7 +87,7 @@ vim.api.nvim_create_user_command("Tend", function(input)
 		Garden_state.set_up = false --Setup?
 	end
 	if not Garden_state.set_up then
-		local lines = timer_to_lines()
+		local lines = timer.timer_to_lines(Garden_state.timer)
 		vim.list_extend(lines, garden_to_lines(Garden_state.data.garden, Garden_state.data.dimensions))
 		vim.api.nvim_buf_set_lines(buffer, 0, -1, true, lines)
 		Garden_state.set_up = true
